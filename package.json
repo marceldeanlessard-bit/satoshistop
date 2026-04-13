@@ -1,0 +1,17 @@
+{
+  "name": "satoshi-stop",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
+    "start": "npm --workspace backend start",
+    "build": "npm --workspace frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

@@ -1,0 +1,732 @@
+// This is a Prisma schema file for advanced database ORM
+// Run: npx prisma migrate dev --name init
+// Note: This complements the existing SQLite setup - gradual migration recommended
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                    Int                      @id @default(autoincrement())
+  email                 String                   @unique
+  username              String                   @unique
+  passwordHash          String?
+  walletAddress         String?                  @unique
+  avatar                String?
+  bio                   String?
+  firstName             String?
+  lastName              String?
+  phone                 String?
+  reputation            Float                    @default(0)
+  isSeller              Boolean                  @default(false)
+  isVerified            Boolean                  @default(false)
+  isAdmin               Boolean                  @default(false)
+  isCreator             Boolean                  @default(false)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  lastLoginAt           DateTime?
+  preferredChains       String?                  // JSON array of chains
+  totalEarnings         Float                    @default(0)
+  followerCount         Int                      @default(0)
+  followingCount        Int                      @default(0)
+
+  // Relations
+  products              Product[]
+  orders                Order[]
+  reviews               Review[]
+  messages              Message[]
+  wishlist              WishlistItem[]
+  sellerProfile         SellerProfile?
+  sessions              Session[]
+  notifications         Notification[]
+  disputes              Dispute[]
+  chainAccounts         ChainAccount[]
+  drops                 CreatorDrop[]
+  auctionListings       AuctionListing[]
+  auctionBids           AuctionBid[]
+  creatorEarnings       CreatorEarnings?
+  activityFeed          ActivityFeed[]
+  followers             Follow[]                 @relation("follower")
+  following             Follow[]                 @relation("following")
+  likes                 Like[]
+  comments              Comment[]
+  paymentMethods        PaymentMethod[]
+  complianceRecords     ComplianceRecord[]
+  livestreamSessions    LivestreamSession[]
+  livestreamViewers     LivestreamViewer[]
+  recommendations       Recommendation[]         @relation("recommendedFor")
+  userPreferences       UserPreference?
+  verificationBadges    VerificationBadge[]
+
+  @@index([email])
+  @@index([username])
+  @@index([walletAddress])
+  @@index([isSeller])
+  @@index([isCreator])
+}
+
+model Product {
+  id                    Int                      @id @default(autoincrement())
+  name                  String
+  description           String
+  detailedDescription   String?
+  price                 Float
+  category              String
+  image                 String?
+  images                String?                  // JSON array for multiple images
+  stock                 Int                      @default(0)
+  isBitcoinAccepted     Boolean                  @default(false)
+  isEthereumAccepted    Boolean                  @default(false)
+  acceptedChains        String?                  // JSON array: ["ethereum", "solana", "bitcoin"]
+  rating                Float                    @default(0)
+  reviewCount           Int                      @default(0)
+  viewCount             Int                      @default(0)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  sellerId              Int
+  isActive              Boolean                  @default(true)
+  isFeatured            Boolean                  @default(false)
+  isDropItem            Boolean                  @default(false)
+  isAuctionItem         Boolean                  @default(false)
+  dropId                Int? @unique
+  auctionId             Int? @unique
+  tags                  String?                  // JSON array for searchability
+  embeddings            String?                  // Vector embedding for AI recommendations
+
+  // Relations
+  seller                User                     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  orders                OrderItem[]
+  reviews               Review[]
+  wishlistItems         WishlistItem[]
+  drop                  CreatorDrop?             @relation(fields: [dropId], references: [id])
+  auction               AuctionListing?          @relation(fields: [auctionId], references: [id])
+  likes                 Like[]
+  comments              Comment[]
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([price])
+  @@index([isDropItem])
+  @@index([isAuctionItem])
+  @@index([createdAt])
+}
+
+model Order {
+  id                 Int                      @id @default(autoincrement())
+  orderNumber        String                   @unique
+  userId             Int
+  status             String                   @default("pending") // pending, paid, shipped, delivered, cancelled, refunded
+  subtotal           Float
+  discount           Float                    @default(0)
+  shippingCost       Float                    @default(0)
+  total              Float
+  paymentMethod      String                   // credit_card, bitcoin, ethereum, ethereum_usdc, solana, stripe, paypal
+  paymentStatus      String                   @default("pending") // pending, completed, failed, refunded
+  paymentTxHash      String?
+  chain              String?                  // ethereum, bitcoin, solana, arbitrum, etc
+  shippingAddress    String
+  shippingMethod     String
+  trackingNumber     String?
+  notes              String?
+  sellerNotes        String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  deliveredAt        DateTime?
+  refundedAt         DateTime?
+  hasDispute         Boolean                  @default(false)
+
+  // Relations
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items              OrderItem[]
+  dispute            Dispute?
+  transaction        PaymentTransaction?
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([chain])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id                 Int                  @id @default(autoincrement())
+  orderId            Int
+  productId          Int
+  quantity           Int
+  price              Float
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  order              Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product            Product              @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Review {
+  id                 Int                  @id @default(autoincrement())
+  productId          Int
+  userId             Int
+  rating             Int                  // 1-5
+  title              String
+  comment            String
+  helpful            Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  product            Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // One review per user per product
+  @@index([productId])
+  @@index([userId])
+}
+
+model SellerProfile {
+  id                     Int                   @id @default(autoincrement())
+  userId                 Int                   @unique
+  storeName              String
+  storeDescription       String?
+  storeSlug              String                @unique
+  returnPolicy           String?
+  shippingPolicy         String?
+  accentColor            String                @default("#ffd700")
+  heroEmoji              String                @default("🛍️")
+  heroImageUrl           String?
+  isVerified             Boolean               @default(false)
+  businessRegistration   String?
+  taxId                  String?
+  bankAccount            String?               // Encrypted
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  socialLinks            String?               // JSON: {twitter, discord, instagram}
+  monthlyMintedValue     Float                 @default(0)
+  totalTransactions      Int                   @default(0)
+  avgShippingDays        Int                   @default(5)
+  acceptsReturns         Boolean               @default(true)
+  commissionRate         Float                 @default(0.05) // 5% platform fee
+
+  // Relations
+  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id                 Int                  @id @default(autoincrement())
+  threadId           Int
+  senderId           Int
+  content            String
+  isRead             Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  thread             MessageThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender             User                 @relation(fields: [senderId], references: [id])
+
+  @@index([threadId])
+  @@index([senderId])
+}
+
+model MessageThread {
+  id                 Int                  @id @default(autoincrement())
+  participant1Id     Int
+  participant2Id     Int
+  lastMessageAt      DateTime             @default(now())
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  messages           Message[]
+
+  @@index([participant1Id])
+  @@index([participant2Id])
+}
+
+model WishlistItem {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  productId          Int
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product            Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model Session {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  token              String               @unique
+  refreshToken       String               @unique
+  expiresAt          DateTime
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Notification {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  type               String // order_update, message, review, etc
+  title              String
+  message            String
+  relatedId          Int? // Order ID, Product ID, etc
+  isRead             Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Dispute {
+  id                 Int                  @id @default(autoincrement())
+  orderId            Int                  @unique
+  reporterId         Int
+  status             String               @default("open") // open, investigating, resolved, rejected
+  reason             String
+  description        String
+  resolution         String?
+  resolutionTime     DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  order              Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reporter           User                 @relation(fields: [reporterId], references: [id])
+
+  @@index([orderId])
+  @@index([reporterId])
+  @@index([status])
+}
+
+model AuditLog {
+  id                 Int                  @id @default(autoincrement())
+  action             String
+  entityType         String
+  entityId           Int
+  userId             Int?
+  changes            String? // JSON
+  ipAddress          String?
+  createdAt          DateTime             @default(now())
+
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// PHASE 2: REAL-TIME FEATURES
+// ============================================================================
+
+model ActivityFeed {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  activityType       String               // product_listed, drop_launched, auction_started, product_reviewed, order_shipped
+  title              String
+  description        String
+  relatedEntityType  String?              // Product, CreatorDrop, AuctionListing
+  relatedEntityId    Int?
+  metadata           String?              // JSON for extra context
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([activityType])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// PHASE 3: MULTI-CHAIN SUPPORT
+// ============================================================================
+
+model ChainAccount {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  chain              String               // ethereum, bitcoin, solana, arbitrum, polygon, etc
+  address            String
+  balance            String               // Store as string to preserve precision
+  isVerified         Boolean              @default(false)
+  metadata           String?              // JSON for chain-specific data
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chain, address])
+  @@index([userId])
+  @@index([chain])
+}
+
+model BlockchainTransaction {
+  id                 Int                  @id @default(autoincrement())
+  orderId            Int
+  chain              String
+  txHash             String
+  fromAddress        String
+  toAddress          String
+  amount             String
+  tokenSymbol        String               // ETH, BTC, SOL, USDC, etc
+  status             String               @default("pending") // pending, confirmed, failed
+  confirmations      Int                  @default(0)
+  gasUsed            String?
+  gasPrice           String?
+  createdAt          DateTime             @default(now())
+  confirmedAt        DateTime?
+
+  @@unique([txHash, chain])
+  @@index([orderId])
+  @@index([chain])
+  @@index([status])
+}
+
+model TokenBalance {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  chain              String
+  tokenAddress       String
+  tokenSymbol        String
+  balance            String
+  decimals           Int
+  lastUpdated        DateTime             @default(now())
+
+  @@unique([userId, chain, tokenAddress])
+  @@index([userId])
+  @@index([chain])
+}
+
+// ============================================================================
+// PHASE 5: CREATOR ECONOMY
+// ============================================================================
+
+model CreatorDrop {
+  id                 Int                  @id @default(autoincrement())
+  creatorId          Int
+  name               String
+  description        String
+  image              String?
+  startTime          DateTime
+  endTime            DateTime
+  price              Float
+  maxQuantity        Int
+  quantitySold       Int                  @default(0)
+  status             String               @default("scheduled") // scheduled, live, ended, cancelled
+  specialOffers      String?              // JSON: {early_bird: 0.9, loyalty: 0.95}
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  creator            User                 @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  products           Product[]
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model AuctionListing {
+  id                 Int                  @id @default(autoincrement())
+  sellerId           Int
+  productId          Int
+  title              String
+  description        String
+  startPrice         Float
+  currentBid         Float                @default(0)
+  highestBidderId    Int?
+  endTime            DateTime
+  status             String               @default("active") // active, sold, cancelled, expired
+  auctionType        String               @default("english") // english, dutch, sealed-bid
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  seller             User                 @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  product            Product?
+  bids               AuctionBid[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([endTime])
+}
+
+model AuctionBid {
+  id                 Int                  @id @default(autoincrement())
+  auctionId          Int
+  bidderId           Int
+  amount             Float
+  bidTime            DateTime             @default(now())
+  txHash             String?
+
+  // Relations
+  auction            AuctionListing       @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  bidder             User                 @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+
+  @@index([auctionId])
+  @@index([bidderId])
+}
+
+model CreatorEarnings {
+  id                 Int                  @id @default(autoincrement())
+  creatorId          Int                  @unique
+  totalEarnings      Float                @default(0)
+  thisMonthEarnings  Float                @default(0)
+  pendingPayout      Float                @default(0)
+  totalSales         Int                  @default(0)
+  lastPayoutDate     DateTime?
+  nextPayoutDate     DateTime?
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  creator            User                 @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+}
+
+model VerificationBadge {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  badgeType          String               // verified_seller, top_creator, bitcoin_native, social_verified
+  issuedBy           String?              // satoshi_stop, external_service
+  expiresAt          DateTime?
+  metadata           String?              // JSON for badge-specific data
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeType])
+  @@index([userId])
+}
+
+// ============================================================================
+// PHASE 4: AI & RECOMMENDATIONS
+// ============================================================================
+
+model ProductEmbedding {
+  id                 Int                  @id @default(autoincrement())
+  productId          Int                  @unique
+  embedding          String               // JSON array of floats (1536-dim for OpenAI)
+  generatedAt        DateTime             @default(now())
+
+  @@index([productId])
+}
+
+model UserPreference {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int                  @unique
+  favoriteCategories String?              // JSON array
+  priceRangeMin      Float?
+  priceRangeMax      Float?
+  excludedKeywords   String?              // JSON array
+  preferredChains    String?              // JSON array
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Recommendation {
+  id                 Int                  @id @default(autoincrement())
+  forUserId          Int
+  productId          Int
+  score              Float                // 0-1 confidence score
+  reason             String?              // "similar_to_viewed", "trending_in_category", "personalized"
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  recommendedFor     User                 @relation("recommendedFor", fields: [forUserId], references: [id], onDelete: Cascade)
+  @@index([forUserId])
+  @@index([score])
+}
+
+model SearchQuery {
+  id                 Int                  @id @default(autoincrement())
+  query              String
+  userId             Int?
+  resultsCount       Int
+  chain              String?
+  priceRange         String?              // JSON: {min, max}
+  category           String?
+  createdAt          DateTime             @default(now())
+
+  @@index([userId])
+  @@index([query])
+}
+
+// ============================================================================
+// PHASE 9: SOCIAL FEATURES
+// ============================================================================
+
+model Follow {
+  id                 Int                  @id @default(autoincrement())
+  followerId         Int
+  followingId        Int
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  follower           User                 @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following          User                 @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Like {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  productId          Int
+  createdAt          DateTime             @default(now())
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product            Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model Comment {
+  id                 Int                  @id @default(autoincrement())
+  productId          Int
+  userId             Int
+  content            String
+  likesCount         Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  product            Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([userId])
+}
+
+// ============================================================================
+// PHASE 10: ALTERNATIVE PAYMENTS
+// ============================================================================
+
+model PaymentMethod {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  type               String               // credit_card, bank_account, wallet, paypal
+  provider           String?              // stripe, paypal, coinbase, etc
+  lastFourDigits     String?
+  isDefault          Boolean              @default(false)
+  metadata           String?              // JSON - encrypted payment details
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+}
+
+model PaymentTransaction {
+  id                 Int                  @id @default(autoincrement())
+  orderId            Int                  @unique
+  amount             Float
+  currency           String               // USD, EUR, BTC, ETH, SOL, etc
+  provider           String               // stripe, paypal, coinbase, direct_wallet
+  status             String               @default("pending") // pending, completed, failed, refunded
+  providerTxId       String?
+  metadata           String?              // JSON
+  createdAt          DateTime             @default(now())
+  completedAt        DateTime?
+
+  // Relations
+  order              Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@index([provider])
+}
+
+// ============================================================================
+// PHASE 8: KYC/AML COMPLIANCE
+// ============================================================================
+
+model ComplianceRecord {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  recordType         String               // kyc, aml, sanctions_check
+  status             String               @default("pending") // pending, verified, rejected
+  provider           String?              // sumsub, onfido, chainalysis
+  externalId         String?
+  metadata           String?              // JSON - verification details
+  rejectionReason    String?
+  verifiedAt         DateTime?
+  expiresAt          DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([recordType])
+}
+
+// ============================================================================
+// PHASE 11 & BEYOND: LIVESTREAM & ADVANCED
+// ============================================================================
+
+model LivestreamSession {
+  id                 Int                  @id @default(autoincrement())
+  creatorId          Int
+  title              String
+  description        String?
+  thumbnailUrl       String?
+  streamUrl          String?              // Twitch/YouTube embed URL
+  startTime          DateTime
+  endTime            DateTime?
+  status             String               @default("scheduled") // scheduled, live, ended
+  viewerCount        Int                  @default(0)
+  featuredProductIds String?              // JSON array
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relations
+  creator            User                 @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  viewers            LivestreamViewer[]
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model LivestreamViewer {
+  id                 Int                  @id @default(autoincrement())
+  sessionId          Int
+  viewerId           Int
+  watchDurationSecs  Int                  @default(0)
+  joinedAt           DateTime             @default(now())
+  leftAt             DateTime?
+
+  // Relations
+  session            LivestreamSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  viewer             User                 @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([viewerId])
+}

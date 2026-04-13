@@ -1,0 +1,8 @@
+import type { Config } from "@prisma/infra/config";
+
+const config: Config = {
+  migrateUrl: process.env.DATABASE_URL ?? "",
+};
+
+export default config;
+
