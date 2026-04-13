@@ -61,7 +61,21 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
+    db: db.getState ? db.getState() : 'ready',
   });
+});
+
+// Prometheus metrics endpoint
+app.get('/api/metrics', (req, res) => {
+  const metrics = {
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    cpu: process.cpuUsage(),
+    env: process.env.NODE_ENV,
+    routes: Object.keys(app._router.stack).length,
+  };
+  res.json(metrics);
 });
 
 // Routes - keep specific limiters and auth

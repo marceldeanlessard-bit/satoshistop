@@ -16,8 +16,13 @@
 
 **Phase 3 Verified ✅** (Docker stack up, backend healthy, Lighthouse auditing PWA/security)
 
-**Phase 4 Progress:** Plan approved, TODO.md created with steps. Next: GitHub CLI check + workflows.
+**Phase 4 Progress:** [2/3 ✅]
+- 4.1 CI/CD workflows created + git init/commit on blackboxai/phase4-cicd 
+- 4.2 Winston logs/healthchecks/metrics added, docker healthchecks
+Next: Complete gh auth login (select GitHub.com), gh repo create satoshistop --public --push, gh pr create
 
-**Run these to complete Lighthouse (in active terminals):**
-- Type `y` to install lighthouse
-- Approve/view report at lighthouse-report.json
+**Test updates:**
+docker-compose down && docker-compose up -d
+curl http://localhost:3000/api/metrics
+
+Lighthouse: approve 'y' in terminals for PWA report
