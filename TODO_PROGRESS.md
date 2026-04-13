@@ -1,28 +1,16 @@
-# Production Readiness Progress - SatoshiStop [Phase 3/3 ✅ → Phase 4]
+# Production Progress - SatoshiStop [Phase 5/5 STARTED]
 
-## Phase 1: Immediate Fixes & Backend Prod [3/3 ✅]
-## Phase 2: Database & Services Prod [2/2 ✅]
-## Phase 3: Frontend & Security Hardening [3/3 ✅]
-- [x] 3.1 PWA complete (VitePWA, manifest, SW caching, offline)
-- [x] 3.2 Backend security hardened (Helmet CSP/Redis rates/CSRF/JWT applied)
-- [x] 3.3 Frontend ErrorBoundary + Sentry (tracing/replays/boundaries)
+## Completed ✅
+- **Phases 1-4:** Full-stack marketplace, PWA, security, Sentry, CI/CD, Docker, monitoring
 
-**Overall Progress: Phase 3 COMPLETE!** Production-ready stack.
+## Phase 5: Production Deploy [0/5]
+- [ ] 5.1 Main branch + PR merge
+- [ ] 5.2 VPS provision (DigitalOcean/Linode)
+- [ ] 5.3 Docker prod stack deploy
+- [ ] 5.4 Domain/SSL setup
+- [ ] 5.5 Verification/Lighthouse 90+
 
-## Phase 4: Deployment & Monitoring [0/3 → IMPLEMENTING]
-- [ ] 4.1 CI/CD GitHub Actions (lint/test/build/deploy)
-- [ ] 4.2 Winston structured logs + health checks/prometheus
-- [ ] 4.3 Production deploy (Docker/Nginx/VPS or Vercel/Netlify)
+**Local Status:** Docker healthy (:5173 frontend, :3000 backend, /api/metrics live)
 
-**Phase 3 Verified ✅** (Docker stack up, backend healthy, Lighthouse auditing PWA/security)
+**Action:** gh CLI installed? Run `gh pr create --title \"Phase 4 → Production\" --base main` then VPS setup.
 
-**Phase 4 Progress:** [2/3 ✅]
-- 4.1 CI/CD workflows created + git init/commit on blackboxai/phase4-cicd 
-- 4.2 Winston logs/healthchecks/metrics added, docker healthchecks
-Next: Complete gh auth login (select GitHub.com), gh repo create satoshistop --public --push, gh pr create
-
-**Test updates:**
-docker-compose down && docker-compose up -d
-curl http://localhost:3000/api/metrics
-
-Lighthouse: approve 'y' in terminals for PWA report

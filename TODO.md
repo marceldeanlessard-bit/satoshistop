@@ -1,24 +1,43 @@
-# Phase 4 Implementation Steps - CI/CD + Deploy 🚀
+# Phase 5: Production Deploy 🚀 [0/5]
 
 ## Current Status
-- ✅ Phase 1-3 Complete (Backend fixed, PWA, Security, Sentry)
-- ✅ Docker stack running (localhost:5173 frontend, :3000 backend)
-- 🔄 Phase 4: 0/3 → Starting CI/CD GitHub Actions
+Phases 1-4 ✅ COMPLETE (Backend, Frontend PWA, Security, CI/CD, Monitoring)
 
-## Breakdown from Approved Plan
+Repo: https://github.com/marceldeanlessard-bit/satoshistop (blackboxai/phase4-cicd branch)
 
-1. ~~Phase 3 Verification~~ ✅ (docker up, lighthouse running)
-2. ~~Check/install GitHub CLI (gh)~~ ✅ (winget installed)
-3. ~~Create `.github/workflows/ci-cd.yml`~~ ✅ (full pipeline ready)
-4. 🔄 Init git repo + commit/PR
-5. Update backend logging (winston) + metrics
-6. docker-compose.prod healthchecks
-7. Production deploy scripts
+Docker stack healthy on localhost.
 
-**Progress:** 4.1 ✅ CI/CD workflows + git branch/commit | 4.2 ✅ Winston/health/metrics/docker healthchecks
+## Phase 5 Steps
+1. [ ] **Create main branch**
+   - `git checkout -b main`
+   - `git push -u origin main`
+   - Merge PR: `gh pr create --title \"Production Ready Phase 4\" --base main`
 
-**Next:** 
-1. Complete gh auth login terminals (GitHub.com → GitHub CLI browser → paste DEVICE code)
-2. `gh repo create satoshistop --public --source=. --remote=origin --push`
-3. `gh pr create --title "Phase 4 CI/CD + Monitoring" --body "Complete Phase 4.1-4.2"`
-4. Test: docker-compose down && docker-compose up -d && curl localhost:3000/api/metrics
+2. [ ] **VPS Setup (DigitalOcean/Linode $6/mo Ubuntu 22.04)**
+   - Create droplet/VM
+   - SSH setup, firewall ufw
+   - Install Docker: `curl -fsSL https://get.docker.com | sh`
+
+3. [ ] **Deploy to VPS**
+   ```
+   git clone https://github.com/marceldeanlessard-bit/satoshistop.git
+   cd satoshistop
+   git checkout main
+   cp .env.example .env
+   # Set secrets: DATABASE_URL, JWT_SECRET, SENTRY_DSN, etc.
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+4. [ ] **Domain/SSL (Let's Encrypt)**
+   - Point A record to VPS IP
+   - Certbot: `sudo apt install certbot nginx; sudo certbot --nginx`
+
+5. [ ] **Production Verification**
+   - Lighthouse audit: 90+ score
+   - Load testing, monitoring
+   - Update README with live URL
+
+**Run on VPS:** `docker-compose -f docker-compose.prod.yml logs -f`
+
+**Next:** Execute Step 1 (main branch), then VPS provision.
+
